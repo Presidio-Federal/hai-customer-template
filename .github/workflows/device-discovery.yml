@@ -1,0 +1,38 @@
+name: Device Discovery
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM
+  workflow_dispatch:
+
+jobs:
+  device-discovery:
+    runs-on: [self-hosted, network-access, '{{CUSTOMER_NAME_LOWER}}']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Discover devices
+      run: |
+        python scripts/device-discovery.py
+      env:
+        NSO_HOST: ${{ secrets.NSO_HOST }}
+        NSO_USERNAME: ${{ secrets.NSO_USERNAME }}
+        NSO_PASSWORD: ${{ secrets.NSO_PASSWORD }}
+    
+    - name: Commit updated inventory
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add infrastructure/inventory/
+        git diff --staged --quiet || git commit -m "Update device inventory [automated]"
+        git push
