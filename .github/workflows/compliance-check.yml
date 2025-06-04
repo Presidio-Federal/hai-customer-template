@@ -1,0 +1,42 @@
+name: Compliance Check
+
+on:
+  push:
+    paths:
+      - 'infrastructure/**'
+      - 'compliance/**'
+  pull_request:
+    paths:
+      - 'infrastructure/**'
+      - 'compliance/**'
+  workflow_dispatch:
+
+jobs:
+  compliance-check:
+    runs-on: [self-hosted, network-access, '{{CUSTOMER_NAME_LOWER}}']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run compliance checks
+      run: |
+        python scripts/compliance-check.py
+      env:
+        NSO_HOST: ${{ secrets.NSO_HOST }}
+        NSO_USERNAME: ${{ secrets.NSO_USERNAME }}
+        NSO_PASSWORD: ${{ secrets.NSO_PASSWORD }}
+    
+    - name: Upload compliance report
+      uses: actions/upload-artifact@v3
+      with:
+        name: compliance-report
+        path: compliance/reports/
